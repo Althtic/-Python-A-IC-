@@ -3,11 +3,15 @@ import numpy as np
 import matplotlib
 matplotlib.use('TkAgg')  # 设置后端
 import matplotlib.pyplot as plt
+from sklearn.linear_model import LinearRegression
+from factor_validation_config_loader import traget_factor, holding_period, layers, test_window_start, test_window_end
+
 # --- 设置 Pandas 显示选项 ---
 # pd.set_option('display.max_rows', None)    # 显示所有行
 pd.set_option('display.max_columns', None) # 显示所有列
 pd.set_option('display.width', None)       # 取消换行（字符宽度限制）
 pd.set_option('display.max_colwidth', None)# 列宽无限制（防止单元格内容被截断）
+
 def cut_time_window(df, start_time, end_time):
     try:
         # 预处理原始数据的日期列
@@ -64,20 +68,44 @@ def data_preprocessing(traget_factor,test_window_start,test_window_end):
     alpha = traget_factor
     filename = f"{alpha}.csv"
     Input_path = base_directory + '\\' + filename
-    df = pd.read_csv(Input_path)
+    df_loading = pd.read_csv(Input_path)
+    cv_df = pd.read_csv(r'C:\Users\63585\Desktop\PycharmProjects\pythonProject\QuantSystem\20170930-20251231.csv',
+                        usecols=['trade_date', 'ts_code', 'circ_mv'])
+    df_merge = df_loading.merge(cv_df,on=['trade_date','ts_code'],how='left')
+    # 计算对数收益率与行业分类
+    def calculate_logcircmv_lndret_exchange_identity(orginal_data, holding_period):
+        orginal_data['log_circ_mv'] = np.log(orginal_data['circ_mv'])
+        # 对数收益率计算
+        orginal_data['lndret'] = np.log(orginal_data['close'] / orginal_data['pre_close'])
+        orginal_data['holding_lndret'] = (
+            orginal_data.groupby('ts_code')['close']
+            .transform(lambda x: np.log(x.shift(-holding_period) / x))
+        )
+        orginal_data = orginal_data.dropna(subset=['holding_lndret'])
+        # 提取股票所属行业信息
+        Stock_industry = orginal_data['industry_name'].unique()
+        return orginal_data, Stock_industry
 
-    df, Stock_industry = calculate_lndret_exchange_identity(df)
+    df, Stock_industry = calculate_logcircmv_lndret_exchange_identity(df_merge, holding_period)
     df_preprocess = cut_time_window(df, test_window_start, test_window_end)
     return df_preprocess, Stock_industry
-def calculate_lndret_exchange_identity(orginal_data):
-    # 对数收益率计算
-    orginal_data['lndret'] = np.log(orginal_data['close'] / orginal_data['pre_close'])
-    orginal_data['holding1D_lndret'] = orginal_data.groupby('ts_code')['lndret'].shift(-1)
-    orginal_data = orginal_data.dropna()
-    # 提取股票所属行业信息
-    Stock_industry = orginal_data['industry_name'].unique()
-    return orginal_data, Stock_industry
-def process_group_by_date(group, target_factor, layers):
+def neutralize_factor_by_date(group, factor_col, cap_col='log_circ_mv'):
+    group = group.replace([np.inf, -np.inf], np.nan)
+    valid_mask = group[factor_col].notna() & group[cap_col].notna() & (group[cap_col] > 0)
+    if valid_mask.sum() < 10:
+        group['factor_neutralized'] = np.nan
+        return group
+    data_valid = group[valid_mask].copy()
+    X = np.log(data_valid[cap_col]).values.reshape(-1, 1)
+    y = data_valid[factor_col].values.reshape(-1, 1)
+    model = LinearRegression()
+    model.fit(X, y)
+    residuals = y.flatten() - model.predict(X).flatten()
+    group['factor_neutralized'] = np.nan
+    group.loc[valid_mask, 'factor_neutralized'] = residuals
+    return group
+def process_group_by_date(group, layers):
+    target_factor = 'factor_neutralized'
     # 先按目标因子值对当前分组进行排序(从小到大升序排列，负向信号在前group_0,正向信号在后group_5)
     sorted_group = group.sort_values(by=target_factor, ascending=False).reset_index(drop=True)
     n = len(sorted_group)
@@ -94,7 +122,7 @@ def process_group_by_date(group, target_factor, layers):
     # 计算出的分组结果赋值给 DataFrame
     sorted_group['quantile'] = quantiles
     # 计算每组的平均收益率
-    sorted_group['mean_lndret'] = sorted_group.groupby('quantile')['holding1D_lndret'].transform('mean')
+    sorted_group['mean_lndret'] = sorted_group.groupby('quantile')['holding_lndret'].transform('mean')
     return sorted_group
 def spread_ret_cumsum_calculate(data, layers):
     Spread_ret = data.pivot_table(
@@ -176,29 +204,30 @@ def plot_multiple_return_metrics(industry_dict, layers):
     plt.tight_layout(rect=[0, 0, 1, 0.96])  # rect 参数为 [left, bottom, right, top]，为总标题留出空间
     plt.show()
 
-# --- 主程序执行 ---
-if __name__ == "__main__":
-    traget_factor = 'alpha_09'  # 分层多空检验的目标因子名称
-    layers = 5 # 分层层数（默认为5）max = 10
-    test_window_start = '20220701'
-    test_window_end = '20240731'
+def run():
     multi_industry_results_dict = {} # 储存每组日度的平均收益
     multi_industry_results_analysis = {} # 储存最后的累计收益结果sum_ret列
 
     df, Stock_industry = data_preprocessing(traget_factor, test_window_start, test_window_end)
+    df = df.groupby('trade_date', group_keys=False).apply(neutralize_factor_by_date, factor_col=traget_factor)
+
     for item in Stock_industry:
         df_se = df[df['industry_name'] == item].copy()
         df_industry_result = df_se.groupby('trade_date')[
-            ['trade_date', 'ts_code', traget_factor, 'holding1D_lndret']].apply(
-            lambda group: process_group_by_date(group, traget_factor, layers)
+            ['trade_date', 'ts_code', 'factor_neutralized', 'holding_lndret']].apply(
+            lambda group: process_group_by_date(group, layers)
         ).reset_index(drop=True)
-        # print(df_industry_result.head(3))
+
         # item行业的分组收益率计算存入字典
         multi_industry_results_dict[item] = df_industry_result
         multi_industry_results_analysis[item] = spread_ret_cumsum_calculate(df_industry_result, layers)
         # print(f'{item} 行业结果形状:', df_result.shape)
     # 行业分层回测图
     plot_multiple_return_metrics(multi_industry_results_analysis, layers)
+
+# --- 主程序执行 ---
+if __name__ == "__main__":
+    run()
 
 
 
