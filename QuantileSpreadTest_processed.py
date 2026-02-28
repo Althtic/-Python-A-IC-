@@ -21,8 +21,8 @@ def data_loading(traget_factor):
     filename = f"{alpha}.csv"
     Input_path = base_directory + '\\' + filename
     df_loading = pd.read_csv(Input_path)
-    # 读取市值数据，后续市值中性化
-    cv_df = pd.read_csv(r'C:\Users\63585\Desktop\PycharmProjects\pythonProject\QuantSystem\20170930-20251231.csv',
+    # 读取市值数据，以便后续市值中性化
+    cv_df = pd.read_csv(r'C:\Users\63585\Desktop\PycharmProjects\pythonProject\QuantSystem\回测数据集\20170930-20251231.csv',
                         usecols=['trade_date', 'ts_code', 'circ_mv'])
     df_merge = df_loading.merge(cv_df,on=['trade_date','ts_code'],how='left')
     return df_merge
@@ -83,8 +83,6 @@ def data_preprocessing(df,test_window_start,test_window_end, holding_period):
     df = df.copy()
     # 截取回测期间的历史数据
     df_preprocess = cut_time_window(df, test_window_start, test_window_end)
-    # 计算市值 circ_mv 对数
-    df_preprocess['log_circ_mv'] = np.log(df_preprocess['circ_mv'])
     # 今日对数收益率计算
     df_preprocess['lndret'] = np.log(df_preprocess['close'] / df_preprocess['pre_close'])
 
@@ -94,19 +92,34 @@ def data_preprocessing(df,test_window_start,test_window_end, holding_period):
     )
     df_preprocess = df_preprocess.dropna(subset=['holding_lndret'])
     return df_preprocess
-# 市值中性化处理
-def neutralize_factor_by_date(group, factor_col, cap_col='log_circ_mv'):
+# 市值/行业中性化处理
+def neutralize_factor_by_date(group, factor_col='alpha_15', cap_col='circ_mv', industry_col='industry_name'):
+    """
+    Factor ~ ln(MarketCap) + Industry_Dummies，返回残差作为中性化后的因子值
+    """
     group = group.replace([np.inf, -np.inf], np.nan)
-    valid_mask = group[factor_col].notna() & group[cap_col].notna() & (group[cap_col] > 0)
+    valid_mask = group[factor_col].notna() & group[cap_col].notna() & group[industry_col].notna()
+
     if valid_mask.sum() < 10:
         group['factor_neutralized'] = np.nan
         return group
     data_valid = group[valid_mask].copy()
-    X = np.log(data_valid[cap_col]).values.reshape(-1, 1)
-    y = data_valid[factor_col].values.reshape(-1, 1)
+
+    y = data_valid[factor_col].values
+    log_cap = np.log(data_valid[cap_col]).values.reshape(-1, 1)
+
+    # 处理自变量 X2: 行业哑变量
+    industry_series = data_valid[industry_col].fillna('Unknown')
+    # 生成哑变量矩阵（True & False）
+    industry_dummies = pd.get_dummies(industry_series, prefix='ind', dummy_na=False)
+    # 合并 X (市值 + 行业)将 log_cap 和 dummies 的 values 拼在一起,使用 np.hstack 效率更高，
+    X = np.hstack([log_cap, industry_dummies.values])
+
     model = LinearRegression()
     model.fit(X, y)
-    residuals = y.flatten() - model.predict(X).flatten()
+    predictions = model.predict(X)
+    residuals = y - predictions
+    # 提取残差
     group['factor_neutralized'] = np.nan
     group.loc[valid_mask, 'factor_neutralized'] = residuals
     return group
@@ -262,20 +275,23 @@ def plot_multiple_return_metrics(dataframe, cumulative_returns, layers, target_f
     plt.tight_layout()
     plt.show()
 
+""" =======================主执行函数======================= """
 def run():
-    """主执行函数"""
-    '''数据加载与处理'''
     df = data_loading(traget_factor)
     df = data_preprocessing(df, test_window_start, test_window_end, holding_period)
-    '''中性化处理（市值中性化）：回归残差法'''
+    print('数据预处理完毕')
+    '''中性化处理（市值 & 行业）：回归残差法'''
     df = df.groupby('trade_date', group_keys=False).apply(neutralize_factor_by_date, factor_col=traget_factor)
+    print('中性化处理完毕（行业 + 市值）')
     '''按日期分层处理'''
     df_layers_processed = df.groupby('trade_date')[['trade_date', 'ts_code', 'factor_neutralized', 'holding_lndret']].apply(
         lambda group: process_group_by_date(group, layers)
     ).reset_index(drop=True)
     '''分层累计收益计算'''
+    print('正在计算分层收益')
     df_layers_cumulative_ret, spread_ret_series, final_cumulative_returns = spread_ret_cumsum_calculate(
         df_layers_processed, layers)
+    print('分层收益计算完毕')
     '''多空收益的t-检验'''
     t_test_spread_ret(spread_ret_series)
     '''结果绘图'''
