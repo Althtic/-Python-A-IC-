@@ -2,7 +2,7 @@ import pandas as pd
 import numpy as np
 import scipy.stats as stats
 import matplotlib
-matplotlib.use('TkAgg')  # 设置后端，matplotlib得以在Pycharm中正常显示
+matplotlib.use('TkAgg')
 import matplotlib.pyplot as plt
 import statsmodels.api as sm
 from sklearn.linear_model import LinearRegression
@@ -132,10 +132,11 @@ def neutralize_factor_by_date(group, factor_col=traget_factor, cap_col='circ_mv'
 # ─────────────────────────────────────────────────────────────────────────────
 # 因子与未来累计收益排序
 # ─────────────────────────────────────────────────────────────────────────────
-def factor_cumuret_rank(df, target_factor, test_period):
+def factor_cumuret_rank(df, test_period):
     # 根据因子值大小排序(升序)，用于计算斯皮尔曼相关系数(RankIC)
     df_factor_ranking = df
-    df_factor_ranking['factor_rank'] = df_factor_ranking.groupby('trade_date')[target_factor].rank(pct=True)
+    # 按照过滤后得到的中性化因子值进行截面排序
+    df_factor_ranking['factor_rank'] = df_factor_ranking.groupby('trade_date')['factor_neutralized'].rank(pct=True)
     # 未来累计收益排序（升序），用于计算斯皮尔曼相关系数（RankIC）
     # rolling()的计算只能面向“过去”，所以需要提前翻转数据（日期翻转），使得rolling()函数可以直接计算未来收益
     df_factor_ranking = df_factor_ranking.sort_values(by=['trade_date', 'ts_code'], ascending=[True, True])
@@ -201,7 +202,7 @@ def IC_calculate(df, ic_ma_period):
 # ─────────────────────────────────────────────────────────────────────────────
 # IC序列的t检验（双尾检验), 需同样进行Newey-West调整自相关
 # ─────────────────────────────────────────────────────────────────────────────
-def ic_ttest_sample(rank_ic_series, threshold=0.07, alpha=0.05):
+def ic_ttest_sample(rank_ic_series, threshold=0.05, alpha=0.05):
     print("=" * 70)
     print("IC 统计显著性检验结果 (Newey-West调整)")
     print("=" * 70)
