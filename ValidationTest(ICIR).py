@@ -5,8 +5,9 @@ import matplotlib
 matplotlib.use('TkAgg')  # 设置后端，matplotlib得以在Pycharm中正常显示
 import matplotlib.pyplot as plt
 import statsmodels.api as sm
+from sklearn.linear_model import LinearRegression
 from statsmodels.stats.sandwich_covariance import cov_hac
-from factor_validation_config_loader import traget_factor, test_window_start, test_window_end, test_period, ic_ma_period
+from config_loader import traget_factor, test_window_start, test_window_end, test_period, ic_ma_period
 
 # --- 设置 Pandas 显示选项 ---
 pd.set_option('display.max_columns', None) # 显示所有列
@@ -23,7 +24,10 @@ def data_loading(traget_factor):
     filename = f"{alpha}.csv"
     Input_path = base_directory + '\\' + filename
     df_loading = pd.read_csv(Input_path)
-    return df_loading
+    cv_df = pd.read_csv(r'C:\Users\63585\Desktop\PycharmProjects\pythonProject\QuantSystem\回测数据集\20170930-20251231.csv',
+                        usecols=['trade_date', 'ts_code', 'circ_mv'])
+    df_merge = df_loading.merge(cv_df,on=['trade_date','ts_code'], how='left')
+    return df_merge
 # ─────────────────────────────────────────────────────────────────────────────
 # 截取时间窗
 # ─────────────────────────────────────────────────────────────────────────────
@@ -79,7 +83,8 @@ def cut_time_window(df, start_time, end_time):
 
         return None 
 # ─────────────────────────────────────────────────────────────────────────────
-# 持有期对数收益率计算, 分别按照t期因子值与t+1期收益率进行排序
+# ─────────────────────────────────────────────────────────────────────────────
+# 持有期对数收益率计算, 后续将分别按照t期因子值与t+1期收益率进行排序
 # ─────────────────────────────────────────────────────────────────────────────
 def data_preprocessing(df,test_window_start,test_window_end):
     df = df.copy()
@@ -91,6 +96,39 @@ def data_preprocessing(df,test_window_start,test_window_end):
     df_preprocess['holding1D_lndret'] = df_preprocess.groupby('ts_code')['lndret'].shift(-1)
     df_preprocess = df_preprocess.dropna()
     return df_preprocess
+# ─────────────────────────────────────────────────────────────────────────────
+# 中性化处理（市值 & 行业）
+# ─────────────────────────────────────────────────────────────────────────────
+def neutralize_factor_by_date(group, factor_col=traget_factor, cap_col='circ_mv', industry_col='industry_name'):
+    """
+    Factor ~ ln(MarketCap) + Industry_Dummies，返回残差作为中性化后的因子值
+    """
+    group = group.replace([np.inf, -np.inf], np.nan)
+    valid_mask = group[factor_col].notna() & group[cap_col].notna() & group[industry_col].notna()
+
+    if valid_mask.sum() < 10:
+        group['factor_neutralized'] = np.nan
+        return group
+    data_valid = group[valid_mask].copy()
+
+    y = data_valid[factor_col].values
+    log_cap = np.log(data_valid[cap_col]).values.reshape(-1, 1)
+
+    # 处理自变量 X2: 行业哑变量
+    industry_series = data_valid[industry_col].fillna('Unknown')
+    # 生成哑变量矩阵（True & False）
+    industry_dummies = pd.get_dummies(industry_series, prefix='ind', dummy_na=False)
+    # 合并 X (市值 + 行业)将 log_cap 和 dummies 的 values 拼在一起,使用 np.hstack 效率更高，
+    X = np.hstack([log_cap, industry_dummies.values])
+
+    model = LinearRegression()
+    model.fit(X, y)
+    predictions = model.predict(X)
+    residuals = y - predictions
+    # 提取残差
+    group['factor_neutralized'] = np.nan
+    group.loc[valid_mask, 'factor_neutralized'] = residuals
+    return group
 # ─────────────────────────────────────────────────────────────────────────────
 # 因子与未来累计收益排序
 # ─────────────────────────────────────────────────────────────────────────────
@@ -160,9 +198,9 @@ def IC_calculate(df, ic_ma_period):
     # final_df = temp_df.drop(columns=['year_month','year'])
     # return final_df
     return temp_df
-# # ─────────────────────────────────────────────────────────────────────────────
-# # IC序列的t检验（双尾检验), 需同样进行Newey-West调整自相关
-# # ─────────────────────────────────────────────────────────────────────────────
+# ─────────────────────────────────────────────────────────────────────────────
+# IC序列的t检验（双尾检验), 需同样进行Newey-West调整自相关
+# ─────────────────────────────────────────────────────────────────────────────
 def ic_ttest_sample(rank_ic_series, threshold=0.07, alpha=0.05):
     print("=" * 70)
     print("IC 统计显著性检验结果 (Newey-West调整)")
@@ -453,14 +491,18 @@ def plot_validation_monthly_series_bar(dict1, dict2):
         ax.yaxis.grid(True, linestyle='--', alpha=0.6)
     plt.tight_layout()
     plt.show()
-
+# ─────────────────────────────────────────────────────────────────────────────
+# 主运行函数
+# ─────────────────────────────────────────────────────────────────────────────
 def run():
-    '''数据加载与预处理'''
+
     df = data_loading(traget_factor)
+    '''数据加载与预处理'''
     df_initial_preprocess = data_preprocessing(df, test_window_start, test_window_end)
-    # print(df_initial_preprocess)
+    '''因子中性化处理'''
+    df_neutralized_preprocess = df_initial_preprocess.groupby('trade_date', group_keys=False).apply(neutralize_factor_by_date, factor_col=traget_factor)
     '''计算因子与未来累计收益排序'''
-    df_factor_rank_processed = factor_cumuret_rank(df_initial_preprocess, traget_factor, test_period)
+    df_factor_rank_processed = factor_cumuret_rank(df_neutralized_preprocess, traget_factor, test_period)
     '''因子有效性相关评价指标'''
     df_validation_features = IC_calculate(df_factor_rank_processed, ic_ma_period)
     # print(df_validation_features.head(3))
