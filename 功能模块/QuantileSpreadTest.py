@@ -98,10 +98,12 @@ def data_preprocessing(df,test_window_start,test_window_end, holding_period):
     # 今日对数收益率计算
     df_preprocess['lndret'] = np.log(df_preprocess['close'] / df_preprocess['pre_close'])
 
-    df_preprocess['holding_lndret'] = (
+    df_preprocess['holding_period_lndret'] = (
         df_preprocess.groupby('ts_code')['close']
         .transform(lambda x: np.log(x.shift(-holding_period) / x))
     )
+    # 注意：这一步需要将持有期收益转化为日度持有期收益率，以防后续按日累加出错，导致高估收益率的情况
+    df_preprocess['holding_lndret'] = df_preprocess['holding_period_lndret'] / holding_period
     df_preprocess = df_preprocess.dropna(subset=['holding_lndret'])
     return df_preprocess
 # ─────────────────────────────────────────────────────────────────────────────
