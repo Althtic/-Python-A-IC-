@@ -2,20 +2,13 @@ import logging
 import pandas as pd
 import numpy as np
 from save_csv import save_data
-from factor_mad import mad_outlier_remove
-from factor_winsorize import winsorize_factor
-from factor_suspension_processing import remove_resume_window_data
-from factor_neutralization import neutralize_factor
-from factor_neutralization_onlyindustry import neutralize_factor_by_industry
-from factor_zscore_standardization import zscore_transform
 from factor_distribution_plot import distribution_plot
-from calculate_rolling_corr import rolling_corr_numba
 from sklearn.linear_model import LinearRegression
 
 '''
 Fama-French SMB 因子
-市值取对数后标准化（需要剔除价值因子BM的影响，回归取残差）
-风格因子，捕捉A股中的规模效应
+市值取对数后标准化(需要剔除价值因子BM的影响,回归取残差)
+风格因子,捕捉A股中的规模效应
 '''
 # --- 配置日志 ---
 # level=logging.INFO 表示记录 INFO 及以上级别的信息
@@ -44,12 +37,12 @@ def calculate_alpha(data) -> pd.DataFrame:
                            low_memory=False
                            )  # total_hldr_eqy_exc_min_int 归母股东权益
     data_smb = data.merge(data_eqy, how='left', on=['ts_code', 'trade_date'])
+
     # BM = 归母股东收益（去除少数股东） / 流通总市值
-    data_smb['BM'] = data_smb['total_hldr_eqy_exc_min_int'] * 0.0001 / data_smb['circ_mv']
+    data_smb['BM'] = data_smb['total_hldr_eqy_exc_min_int'] / data_smb['circ_mv']
     # 取对数市值，更好的分布特性
     data_smb['ln_circ_mv'] = np.log(data_smb['circ_mv'])
-
-    '''参照Fama-French原文中的方法，对规模因子需要事先排除价值因子的干扰（原文为双重排序，在这里采用截面残差回归）'''
+ 
     def get_residuals(group, y_col='ln_circ_mv', x_col='BM'):
 
 
@@ -70,12 +63,12 @@ def calculate_alpha(data) -> pd.DataFrame:
     data_c = data_smb.groupby('trade_date', group_keys=False).apply(get_residuals)
     data_c['rank_smb_resid'] = data_c.groupby('trade_date')['smb_resid'].rank(pct=True)
 
-    '''参照Fama-French原文中的方法，计算多空收益'''
+    '''参照Fama-French原文中的方法, 计算多空收益'''
     def spread_ret_calc(group, rank_col='rank_smb_resid', ret_col='dret'):
-        # 10%-20% - 80%-90%
-        long_mask = (group[rank_col] > 0.10) & (group[rank_col] <= 0.20)
+        # 10%-30% - 70%-90%
+        long_mask = (group[rank_col] > 0.10) & (group[rank_col] <= 0.30)
         long_group = group.loc[long_mask, ret_col]
-        short_mask = (group[rank_col] > 0.80) & (group[rank_col] <= 0.90)
+        short_mask = (group[rank_col] > 0.70) & (group[rank_col] <= 0.90)
         short_group = group.loc[short_mask, ret_col]
 
         if long_group.empty or short_group.empty:
@@ -89,27 +82,18 @@ def calculate_alpha(data) -> pd.DataFrame:
     daily_spread_series = data_c.groupby('trade_date').apply(
         lambda x: spread_ret_calc(x)
     )
-
-    data_c['smb'] = data_c['trade_date'].map(daily_spread_series)
-    factor_name = data_c.columns[-1]
-
+    factor_name = 'smb'
+    return_data = daily_spread_series.reset_index()
+    return_data.columns = ['trade_date', factor_name]
     try:
-        data_c = remove_resume_window_data(data_c, window=20)
-        data_c = mad_outlier_remove(data_c)
-        data_c = data_c.dropna(subset=factor_name)
-        data_c.rename(columns={'resid': factor_name}, inplace=True)
+        return_data = return_data.dropna(subset=factor_name)
     except Exception as e:
         logger.info(f"Error in Final Calculation or Post-processing: {e}")
         raise e
-
-    return_columns = ['ts_code', 'trade_date', 'open', 'high', 'low', 'close', 'pre_close', 'industry_name', factor_name]
-    available_columns = [col for col in return_columns if col in data_c.columns]
-    return_data = data_c[available_columns]
-
     return return_data
 
 if __name__ == "__main__":
-    logger.info("--- 开始执行 规模因子 计算流程 ---")
+    logger.info("--- 开始执行 SMB 计算流程 ---")
     try:
         columns_needed = [
             'ts_code',
@@ -118,16 +102,14 @@ if __name__ == "__main__":
             'high',
             'low',
             'close',
-            'pre_close',
             'dret',
             'industry_name',
             'circ_mv',
-            'dret',
             'suspend_type'
         ]
         logger.info("正在读取数据...")
         history_data = pd.read_csv(
-            r'C:\Users\63585\Desktop\PycharmProjects\pythonProject\QuantSystem\回测数据集\20170930-20251231.csv',
+            r'C:\Users\63585\Desktop\PycharmProjects\pythonProject\QuantSystem\回测数据集\20170930-20251231_pipe.csv',
             usecols=columns_needed,
             low_memory=False)
         logger.info(f"数据读取完成，共 {len(history_data)} 行。")
