@@ -4,11 +4,11 @@ import numpy as np
 from save_csv import save_data
 from factor_distribution_plot import distribution_plot
 
-
 '''
 Fama-French HML 因子
 账面市值比 BM
 '''
+
 # --- 配置日志 ---
 # level=logging.INFO 表示记录 INFO 及以上级别的信息
 # format 定义了日志消息的格式
@@ -37,31 +37,33 @@ def calculate_alpha(data) -> pd.DataFrame:
     # BM = 归母股东收益（去除少数股东） / 流通总市值
     data_c['BM'] = data_c['total_hldr_eqy_exc_min_int'] / data_c['circ_mv']
     data_c['rank_BM'] = data_c.groupby('trade_date')['BM'].rank(pct=True)
+    data_c['rank_circ_mv'] = data_c.groupby('trade_date')['circ_mv'].rank(pct=True)
     
+    '''参照Fama-French原文中的方法,分别按照circ_mv与BM双重排序后的高低分组, 计算多空收益'''
+    def spread_ret_calc(group, ret_col='dret'):
+        # 流通市值中位数分Big/Small; BM按30%/70%分High/Middle/Low
+        big = group['rank_circ_mv'] > 0.5
+        small = group['rank_circ_mv'] <= 0.5
+        high_bm = group['rank_BM'] > 0.70
+        low_bm = group['rank_BM'] <= 0.30
 
-    '''参照Fama-French原文中的方法,计算多空收益'''
-    def spread_ret_calc(group, rank_col='rank_BM', ret_col='dret'):
-        # 70%-90% - 10%-30%
-        short_mask = (group[rank_col] > 0.10) & (group[rank_col] <= 0.30)
-        short_group = group.loc[short_mask, ret_col]
-        long_mask = (group[rank_col] > 0.70) & (group[rank_col] <= 0.90)
-        long_group = group.loc[long_mask, ret_col]
+        bh = group.loc[big & high_bm, ret_col]
+        sh = group.loc[small & high_bm, ret_col]
+        bl = group.loc[big & low_bm, ret_col]
+        sl = group.loc[small & low_bm, ret_col]
 
-        if long_group.empty or short_group.empty:
+        if bh.empty or sh.empty or bl.empty or sl.empty:
             return np.nan
 
-        mean_long = long_group.mean()
-        mean_short = short_group.mean()
-        spread = mean_long - mean_short
-        spread = spread.round(7)
-        return spread
+        ret_high = (bh.mean() + sh.mean()) / 2
+        ret_low = (bl.mean() + sl.mean()) / 2
+        return (ret_high - ret_low).round(7)
     daily_spread_series = data_c.groupby('trade_date').apply(
         lambda x: spread_ret_calc(x)
     )
     factor_name = 'hml'
     return_data = daily_spread_series.reset_index()
-    print(return_data)
-    return
+
     return_data.columns = ['trade_date', factor_name]
 
     try:
