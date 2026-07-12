@@ -1,0 +1,105 @@
+// DolphinDB schema for QuantSystem daily market data, financial features and factor outputs.
+// Run with:
+//   node C:/Users/63585/DolphinDB/ddb-runner.mjs --file dolphindb/schema.dos
+
+dbPath = "dfs://quant_system";
+
+def createPartitionedIfAbsent(db, dbPath, tableName, schema, partitionColumns) {
+    if (existsTable(dbPath, tableName)) {
+        print("table already exists: " + tableName);
+    } else {
+        db.createPartitionedTable(schema, tableName, partitionColumns);
+        print("created table: " + tableName);
+    }
+}
+
+def createDimensionIfAbsent(db, dbPath, tableName, schema) {
+    if (existsTable(dbPath, tableName)) {
+        print("table already exists: " + tableName);
+    } else {
+        db.createTable(schema, tableName);
+        print("created table: " + tableName);
+    }
+}
+
+if (!existsDatabase(dbPath)) {
+    dbMonth = database(, VALUE, 2017.09M..2026.12M);
+    dbCode = database(, HASH, [SYMBOL, 64]);
+    db = database(dbPath, COMPO, [dbMonth, dbCode]);
+    print("created database: " + dbPath);
+} else {
+    db = database(dbPath);
+    print("database already exists: " + dbPath);
+}
+
+marketBar = table(
+    1:0,
+    `trade_date`month`ts_code`open`high`low`close`pre_close`vol`amount`adj_factor`dret,
+    [DATE, MONTH, SYMBOL, DOUBLE, DOUBLE, DOUBLE, DOUBLE, DOUBLE, DOUBLE, DOUBLE, DOUBLE, DOUBLE]
+);
+createPartitionedIfAbsent(db, dbPath, `core_market_bar_daily, marketBar, `month`ts_code);
+
+marketStatus = table(
+    1:0,
+    `trade_date`month`ts_code`is_trading`suspend_timing`suspend_type`market,
+    [DATE, MONTH, SYMBOL, INT, SYMBOL, SYMBOL, SYMBOL]
+);
+createPartitionedIfAbsent(db, dbPath, `core_market_status_daily, marketStatus, `month`ts_code);
+
+marketValuation = table(
+    1:0,
+    `trade_date`month`ts_code`turnover_rate`turnover_rate_f`volume_ratio`pe`pe_ttm`pb`ps`ps_ttm`dv_ratio`dv_ttm`total_share`float_share`free_share`total_mv`circ_mv,
+    [DATE, MONTH, SYMBOL, DOUBLE, DOUBLE, DOUBLE, DOUBLE, DOUBLE, DOUBLE, DOUBLE, DOUBLE, DOUBLE, DOUBLE, DOUBLE, DOUBLE, DOUBLE, DOUBLE, DOUBLE]
+);
+createPartitionedIfAbsent(db, dbPath, `core_market_valuation_daily, marketValuation, `month`ts_code);
+
+industry = table(
+    1:0,
+    `trade_date`month`ts_code`industry_name`source,
+    [DATE, MONTH, SYMBOL, SYMBOL, SYMBOL]
+);
+createPartitionedIfAbsent(db, dbPath, `core_industry_sw_l1_daily, industry, `month`ts_code);
+
+finFeature = table(
+    1:0,
+    `trade_date`month`ts_code`feature_name`feature_value`ann_date`end_date`data_version,
+    [DATE, MONTH, SYMBOL, SYMBOL, DOUBLE, DATE, DATE, SYMBOL]
+);
+createPartitionedIfAbsent(db, dbPath, `feature_financial_daily, finFeature, `month`ts_code);
+
+factorDaily = table(
+    1:0,
+    `trade_date`month`ts_code`factor_name`factor_value`raw_value`factor_version`data_version`neutralized`winsorized`run_id`created_at,
+    [DATE, MONTH, SYMBOL, SYMBOL, DOUBLE, DOUBLE, SYMBOL, SYMBOL, BOOL, BOOL, SYMBOL, TIMESTAMP]
+);
+createPartitionedIfAbsent(db, dbPath, `factor_daily, factorDaily, `month`ts_code);
+
+
+marketFactorDaily = table(
+    1:0,
+    `trade_date`month`factor_name`factor_value`factor_version`data_version`run_id`created_at,
+    [DATE, MONTH, SYMBOL, DOUBLE, SYMBOL, SYMBOL, SYMBOL, TIMESTAMP]
+);
+createPartitionedIfAbsent(db, dbPath, `market_factor_daily, marketFactorDaily, `month`factor_name);
+
+macroRateDaily = table(
+    1:0,
+    `trade_date`month`rate_name`rate_value`daily_rate`source`data_version`run_id`created_at,
+    [DATE, MONTH, SYMBOL, DOUBLE, DOUBLE, SYMBOL, SYMBOL, SYMBOL, TIMESTAMP]
+);
+createPartitionedIfAbsent(db, dbPath, `macro_rate_daily, macroRateDaily, `month`rate_name);
+factorMeta = table(
+    1:0,
+    `factor_name`description`formula`input_tables`code_path`default_window`owner`created_at,
+    [SYMBOL, STRING, STRING, STRING, STRING, INT, SYMBOL, TIMESTAMP]
+);
+createDimensionIfAbsent(db, dbPath, `factor_meta, factorMeta);
+
+factorRunLog = table(
+    1:0,
+    `run_id`factor_name`factor_version`data_version`started_at`finished_at`status`row_count`message,
+    [SYMBOL, SYMBOL, SYMBOL, SYMBOL, TIMESTAMP, TIMESTAMP, SYMBOL, LONG, STRING]
+);
+createDimensionIfAbsent(db, dbPath, `factor_run_log, factorRunLog);
+
+print("QuantSystem DolphinDB schema ready.");

@@ -1,0 +1,29 @@
+// Small DolphinDB import smoke test. It imports the first N rows from local CSVs.
+// Edit projectRoot if the project is moved.
+
+projectRoot = "C:/Users/63585/Desktop/PycharmProjects/pythonProject/QuantSystem";
+dbPath = "dfs://quant_system";
+sampleRows = 10000;
+
+def appendMarketSample(projectRoot, dbPath, sampleRows) {
+    source = projectRoot + "/回测数据集/20170930-20251231_pipe.csv";
+    raw = select top 10000 * from loadText(source);
+    raw[`month] = month(raw.trade_date);
+    raw[`ts_code] = symbol(raw.ts_code);
+
+    marketBar = select trade_date, month, ts_code, open, high, low, close, pre_close, vol, amount, adj_factor, dret from raw;
+    loadTable(dbPath, `core_market_bar_daily).append!(marketBar);
+
+    marketStatus = select trade_date, month, ts_code, is_trading, suspend_timing, symbol(string(suspend_type)) as suspend_type, symbol(market) as market from raw;
+    loadTable(dbPath, `core_market_status_daily).append!(marketStatus);
+
+    marketValuation = select trade_date, month, ts_code, turnover_rate, turnover_rate_f, volume_ratio, pe, pe_ttm, pb, ps, ps_ttm, dv_ratio, dv_ttm, total_share, float_share, free_share, total_mv, circ_mv from raw;
+    loadTable(dbPath, `core_market_valuation_daily).append!(marketValuation);
+
+    industry = select distinct trade_date, month, ts_code, symbol(industry_name) as industry_name, `SW_L1 as source from raw;
+    loadTable(dbPath, `core_industry_sw_l1_daily).append!(industry);
+
+    print("market sample imported rows: " + string(size(raw)));
+}
+
+appendMarketSample(projectRoot, dbPath, sampleRows);

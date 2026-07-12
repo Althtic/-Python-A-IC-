@@ -1,0 +1,64 @@
+{
+  "csv_path": "Factors\\FF5_fixed_20260711.csv",
+  "start_date": "20171010",
+  "end_date": "20251231",
+  "chunk_months": 1,
+  "tolerance": 1e-07,
+  "factors": {
+    "mkt": {
+      "csv_dates": 2001,
+      "db_dates": 2001,
+      "overlap_dates": 2001,
+      "csv_only_dates": 0,
+      "db_only_dates": 0,
+      "max_abs_error": 0.0,
+      "mean_abs_error": 0.0,
+      "rmse": 0.0,
+      "over_tolerance_dates": 0
+    },
+    "smb": {
+      "csv_dates": 2001,
+      "db_dates": 2001,
+      "overlap_dates": 2001,
+      "csv_only_dates": 0,
+      "db_only_dates": 0,
+      "max_abs_error": 0.0,
+      "mean_abs_error": 0.0,
+      "rmse": 0.0,
+      "over_tolerance_dates": 0
+    },
+    "hml": {
+      "csv_dates": 2001,
+      "db_dates": 2001,
+      "overlap_dates": 2001,
+      "csv_only_dates": 0,
+      "db_only_dates": 0,
+      "max_abs_error": 0.0,
+      "mean_abs_error": 0.0,
+      "rmse": 0.0,
+      "over_tolerance_dates": 0
+    },
+    "rmw": {
+      "csv_dates": 2001,
+      "db_dates": 2001,
+      "overlap_dates": 2001,
+      "csv_only_dates": 0,
+      "db_only_dates": 0,
+      "max_abs_error": 0.0,
+      "mean_abs_error": 0.0,
+      "rmse": 0.0,
+      "over_tolerance_dates": 0
+    },
+    "cma": {
+      "csv_dates": 2001,
+      "db_dates": 2001,
+      "overlap_dates": 2001,
+      "csv_only_dates": 0,
+      "db_only_dates": 0,
+      "max_abs_error": 0.0,
+      "mean_abs_error": 0.0,
+      "rmse": 0.0,
+      "over_tolerance_dates": 0
+    }
+  }
+}

@@ -1,0 +1,14 @@
+pandas
+numpy
+matplotlib
+scipy
+statsmodels
+scikit-learn
+numba
+tushare
+requests
+
+dolphindb
+fastapi
+uvicorn
+

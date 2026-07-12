@@ -1,0 +1,88 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>QuantSystem 因子研究</title>
+  <link rel="stylesheet" href="/static/styles.css" />
+</head>
+<body>
+  <div class="shell">
+    <aside class="sidebar">
+      <div class="brand">
+        <span class="brand-mark">Q</span>
+        <div><p>QUANTSYSTEM</p><h1>因子研究</h1></div>
+      </div>
+      <nav>
+        <a href="#overview">数据概览</a>
+        <a href="#ic">IC 检验</a>
+        <a href="#quantile">分层回测</a>
+        <a href="#factors">因子看板</a>
+      </nav>
+      <div class="connection"><span id="healthDot" class="dot"></span><strong id="healthText">连接中</strong><small>DolphinDB / 127.0.0.1:8848</small></div>
+    </aside>
+
+    <main>
+      <header class="topbar"><div><p class="kicker">因子研究工作台</p><h2>研究结果</h2></div><span id="runStatus" class="run-status">就绪</span></header>
+
+      <section class="control-panel" aria-label="分析参数">
+        <label>因子<select id="factorSelect"></select></label>
+        <label>版本<input id="versionInput" value="v1" /></label>
+        <label>开始日期<input id="startInput" value="20190101" inputmode="numeric" /></label>
+        <label>结束日期<input id="endInput" value="20190331" inputmode="numeric" /></label>
+        <label>IC 持有期（交易日）<input id="icHoldingInput" type="number" min="1" max="60" value="5" /></label>
+        <label>IC 均线窗口<input id="icMaInput" type="number" min="1" max="252" value="20" /></label>
+        <label>分层组数<input id="layersInput" type="number" min="2" max="20" value="10" /></label>
+        <label>调仓周期（交易日）<input id="holdingInput" type="number" min="1" max="60" value="5" /></label>
+        <label class="check-label"><input id="industryToggle" type="checkbox" />行业内分层</label>
+        <button id="runButton" type="button">运行分析</button>
+      </section>
+
+      <section id="overview" class="research-section">
+        <article class="panel"><div class="panel-title"><h3>数据表状态</h3><span>行数 / 覆盖区间</span></div><div class="table-wrap"><table id="tableStatus"></table></div></article>
+      </section>
+
+      <section id="ic" class="research-section">
+        <div class="section-title"><div><p class="kicker">信息系数</p><h2>IC 检验</h2></div><span id="icWindow">等待运行</span></div>
+        <article class="panel"><div id="icMetrics" class="metrics"></div></article>
+        <div class="grid two-col">
+          <article class="panel"><div class="panel-title"><h3>Rank IC 与均线</h3><span>日频</span></div><div id="icSeriesChart" class="chart"></div></article>
+          <article class="panel"><div class="panel-title"><h3>累计 IC</h3><span>日频</span></div><div id="cumulativeIcChart" class="chart"></div></article>
+        </div>
+        <div class="grid two-col">
+          <article class="panel"><div class="panel-title"><h3>IC 衰减</h3><span>各持有期</span></div><div id="icDecayChart" class="chart compact"></div></article>
+          <article class="panel"><div class="panel-title"><h3>Newey-West 检验</h3><span>双尾 IC 均值检验</span></div><div class="table-wrap"><table id="icNwTable"></table></div></article>
+        </div>
+        <div class="grid two-col">
+          <article class="panel"><div class="panel-title"><h3>月度 IC 热力图</h3><span>年 x 月</span></div><div id="monthlyIcHeatmap" class="heatmap"></div></article>
+          <article class="panel"><div class="panel-title"><h3>年度 IC 热力图</h3><span>指标 x 年度</span></div><div id="yearlyIcHeatmap" class="heatmap"></div></article>
+        </div>
+      </section>
+
+      <section id="quantile" class="research-section">
+        <div class="section-title"><div><p class="kicker">分层组合</p><h2>分层回测</h2></div><span id="quantileWindow">等待运行</span></div>
+        <article class="panel"><div id="quantileMetrics" class="metrics"></div></article>
+        <div class="grid two-col">
+          <article class="panel"><div class="panel-title"><h3>等权累计收益</h3><span>全部分组 / 多空</span></div><div id="quantileEwChart" class="chart"></div></article>
+          <article class="panel"><div class="panel-title"><h3>市值加权累计收益</h3><span>全部分组 / 多空</span></div><div id="quantileVwChart" class="chart"></div></article>
+        </div>
+        <div class="grid two-col">
+          <article class="panel"><div class="panel-title"><h3>期末累计收益</h3><span>全部分组</span></div><div class="table-wrap"><table id="quantileFinalTable"></table></div></article>
+          <article class="panel"><div class="panel-title"><h3>分层多空 Newey-West</h3><span>单尾正收益检验</span></div><div class="table-wrap"><table id="quantileNwTable"></table></div></article>
+        </div>
+        <div class="grid two-col">
+          <article class="panel"><div class="panel-title"><h3>多空换手率</h3><span>调仓日</span></div><div id="turnoverChart" class="chart compact"></div></article>
+          <article class="panel"><div class="panel-title"><h3>各层换手率</h3><span>等权单层</span></div><div id="layerTurnoverChart" class="chart compact"></div></article>
+        </div>
+        <article id="industryPanel" class="panel hidden"><div class="panel-title"><h3>行业内分层</h3><label class="inline-label">行业<select id="industrySelect"></select></label></div><div id="industryChart" class="chart"></div><div class="table-wrap"><table id="industrySummaryTable"></table></div></article>
+      </section>
+
+      <section id="factors" class="panel research-section"><div class="panel-title"><h3>因子看板</h3><span>因子明细 / 已验证公式</span></div><div class="table-wrap"><table id="factorTable"></table></div></section>
+    </main>
+  </div>
+  <div id="toast" class="toast hidden" role="alert"></div>
+  <script>window.MathJax = { tex: { inlineMath: [["\\(", "\\)"]] }, options: { skipHtmlTags: ["script", "noscript", "style", "textarea", "pre", "code"] } };</script>
+  <script async src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+  <script src="/static/app.js"></script>
+</body>
+</html>

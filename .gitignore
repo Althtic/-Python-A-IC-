@@ -1,0 +1,68 @@
+﻿# Python cache/build artifacts
+__pycache__/
+*.py[cod]
+*$py.class
+*.pyo
+*.pyd
+*.nbc
+*.nbi
+
+# Virtual environments
+.venv/
+venv/
+env/
+.virtualenv/
+
+# Test/cache artifacts
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.coverage
+htmlcov/
+
+# IDE/local settings
+.idea/
+.vscode/
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Secrets and local environment
+.env
+.env.*
+*.pem
+
+# Large/local research datasets
+A鑲℃棩搴HLC鏁版嵁/
+鍥炴祴鏁版嵁闆?*.csv
+Factors/*.csv
+A鑲′笂甯傜幇閲戞祦閲忚〃鏁版嵁/*.csv
+A鑲′笂甯傝储鍔℃寚鏍囨暟鎹?*.csv
+A鑲′笂甯傝祫浜ц礋鍊鸿〃鏁版嵁/*.csv
+A鑲′笟缁╁揩鎶ユ暟鎹?*.csv
+A鑲″垎绾㈤€佽偂鏁版嵁/*.csv
+DL/
+
+# Generated reports and plots. Keep selected examples intentionally with git add -f.
+鍥犲瓙妫€楠岀粨鏋?
+鍥犲瓙鍒嗘瀽鎶ュ憡/
+*.png
+
+# Runtime logs and generated diff details
+logs/*.log
+docs/*.csv
+
+# Correct Unicode dataset ignore rules
+A股日度OHLC数据/
+A股上市现金流量表数据/
+A股上市财务指标数据/
+A股上市资产负债表数据/
+A股业绩快报数据/
+A股分红送股数据/
+回测数据集/*.csv
+Factors/*.csv
+因子分析报告/
+因子检验结果/
+TestLab/*.csv
+

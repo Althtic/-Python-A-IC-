@@ -1,0 +1,84 @@
+{
+  "window": {
+    "factor": "alpha_60",
+    "version": "v1",
+    "start_date": "20190101",
+    "end_date": "20190331",
+    "holding_period": 5,
+    "layers": 10
+  },
+  "python": {
+    "seconds": {
+      "ic": 4.779181799851358,
+      "quantile": 2.8007026000414044,
+      "total": 7.579884399892762
+    },
+    "ic_summary": {
+      "loaded_rows": 197557,
+      "rows_after_preprocess": 176879,
+      "rank_ic_mean": 0.03228944983771847,
+      "rank_ic_std": 0.11400003832045257,
+      "icir": 0.2832406928404117,
+      "ic_win_rate": 0.5961538461538461,
+      "cumulative_ic_final": 1.6790513915613603,
+      "cumulative_ic_max_drawdown": 1.3704161802407062,
+      "cumulative_ic_max_drawdown_ratio": 1.0019658377149878,
+      "max_drawdown_date": "20190304",
+      "holding_period": 5,
+      "ic_ma_window": 20
+    },
+    "quantile_summary": {
+      "loaded_rows": 197557,
+      "rows_after_preprocess": 180325,
+      "rows_after_layering": 180325,
+      "layers": 10,
+      "holding_period": 5,
+      "ls_ew_final": 0.07731306693887335,
+      "ls_vw_final": -0.003025275126407845,
+      "avg_turnover_ew": 0.6908279197265227,
+      "avg_turnover_vw": 0.6445699392541396,
+      "ann_turnover_ew": 34.81772715421674,
+      "ann_turnover_vw": 32.486324938408636
+    }
+  },
+  "dolphindb": {
+    "seconds": {
+      "ic": 1.0945962998084724,
+      "quantile": 1.3214805000461638,
+      "total": 2.416076799854636
+    },
+    "ic_summary": {
+      "loaded_rows": null,
+      "rows_after_preprocess": null,
+      "rank_ic_mean": 0.032288583060313555,
+      "rank_ic_std": 0.11399898477455134,
+      "icir": 0.2832357070913278,
+      "ic_win_rate": 0.5961538461538461,
+      "cumulative_ic_final": 1.6790063191363047,
+      "cumulative_ic_max_drawdown": 1.3704287170359901,
+      "cumulative_ic_max_drawdown_ratio": 1.0019818363729838,
+      "max_drawdown_date": "20190304",
+      "holding_period": 5,
+      "ic_ma_window": 20
+    },
+    "quantile_summary": {
+      "loaded_rows": null,
+      "rows_after_preprocess": null,
+      "rows_after_layering": null,
+      "layers": 10,
+      "holding_period": 5,
+      "ls_ew_final": 0.07731306693887337,
+      "ls_vw_final": -0.0030252751264079267,
+      "avg_turnover_ew": 0.6908279197265227,
+      "avg_turnover_vw": 0.6445699392541396,
+      "ann_turnover_ew": 34.81772715421674,
+      "ann_turnover_vw": 32.486324938408636
+    }
+  },
+  "difference": {
+    "ic_rank_mean": -8.667774049134214e-07,
+    "ic_series_max_abs": 2.857841241593606e-05,
+    "quantile_ew_ls_final": 1.3877787807814457e-17,
+    "quantile_vw_ls_final": -8.153200337090993e-17
+  }
+}
