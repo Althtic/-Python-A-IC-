@@ -12,3 +12,4 @@ dolphindb
 fastapi
 uvicorn
 
+pytest

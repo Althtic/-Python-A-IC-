@@ -18,6 +18,7 @@
         <a href="#ic">IC 检验</a>
         <a href="#quantile">分层回测</a>
         <a href="#factors">因子看板</a>
+        <a href="#market-factors">市场因子</a>
       </nav>
       <div class="connection"><span id="healthDot" class="dot"></span><strong id="healthText">连接中</strong><small>DolphinDB / 127.0.0.1:8848</small></div>
     </aside>
@@ -77,12 +78,11 @@
         <article id="industryPanel" class="panel hidden"><div class="panel-title"><h3>行业内分层</h3><label class="inline-label">行业<select id="industrySelect"></select></label></div><div id="industryChart" class="chart"></div><div class="table-wrap"><table id="industrySummaryTable"></table></div></article>
       </section>
 
-      <section id="factors" class="panel research-section"><div class="panel-title"><h3>因子看板</h3><span>因子明细 / 已验证公式</span></div><div class="table-wrap"><table id="factorTable"></table></div></section>
+      <section id="factors" class="panel research-section"><div class="panel-title"><h3>因子看板</h3><span>因子明细</span></div><div class="table-wrap"><table id="factorTable"></table></div></section>
+      <section id="market-factors" class="panel research-section"><div class="panel-title"><h3>市场因子（FF5）</h3><span>市场因子明细</span></div><div class="table-wrap"><table id="marketFactorTable"></table></div></section>
     </main>
   </div>
   <div id="toast" class="toast hidden" role="alert"></div>
-  <script>window.MathJax = { tex: { inlineMath: [["\\(", "\\)"]] }, options: { skipHtmlTags: ["script", "noscript", "style", "textarea", "pre", "code"] } };</script>
-  <script async src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
   <script src="/static/app.js"></script>
 </body>
 </html>

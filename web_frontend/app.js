@@ -249,18 +249,21 @@ async function loadFactors() {
     { key: "factor_name", label: "因子" }, { key: "factor_version", label: "版本" },
     { key: "rows", label: "行数", digits: 0 },
     { key: "coverage", label: "覆盖区间", format: (_, row) => `${row.start_date || "--"} ~ ${row.end_date || "--"}` },
-    { key: "formula_latex", label: "公式", html: true, format: (raw) => `\\(${escapeHtml(raw)}\\)` },
     { key: "last_created_at", label: "最后写入" },
   ]);
-  if (window.MathJax?.typesetPromise) window.MathJax.typesetPromise([$("factorTable")]);
-  window.setTimeout(() => { if (window.MathJax?.typesetPromise) window.MathJax.typesetPromise([$("factorTable")]); }, 800);
+  const marketData = await api("/api/market-factors");
+  renderTable($("marketFactorTable"), marketData.factors, [
+    { key: "factor_name", label: "因子" }, { key: "factor_version", label: "版本" },
+    { key: "data_version", label: "数据版本" }, { key: "rows", label: "行数", digits: 0 },
+    { key: "coverage", label: "覆盖区间", format: (_, row) => `${row.start_date || "--"} ~ ${row.end_date || "--"}` },
+    { key: "last_created_at", label: "最后写入" },
+  ]);
   const select = $("factorSelect");
   select.innerHTML = state.factors.map((factor) => `<option value="${escapeHtml(factor.factor_name)}" data-version="${escapeHtml(factor.factor_version)}">${escapeHtml(factor.factor_name)} / ${escapeHtml(factor.factor_version)}</option>`).join("");
   const alpha60 = [...select.options].find((option) => option.value === "alpha_60");
   if (alpha60) select.value = "alpha_60";
   $("versionInput").value = select.selectedOptions[0]?.dataset.version || "v1";
 }
-
 function renderIc(data) {
   const summary = data.summary;
   const recoveryStatus = { recovered: "已恢复", unrecovered: "未恢复", none: "无回撤" }[summary.max_drawdown_recovery_status] || (summary.max_drawdown_recovery_status || "未恢复");
@@ -377,6 +380,7 @@ async function runAnalysis() {
 $("factorSelect").addEventListener("change", (event) => { $("versionInput").value = event.target.selectedOptions[0]?.dataset.version || "v1"; });
 $("industrySelect").addEventListener("change", renderIndustry);
 $("runButton").addEventListener("click", runAnalysis);
+
 
 (async function boot() {
   try {

@@ -43,45 +43,6 @@ TABLES = [
     "macro_rate_daily",
 ]
 
-# Formula text is kept next to the API contract so the dashboard never has to
-# infer mathematics from a factor name. Operators such as TsRank and DecayLinear
-# match the implementations in Factor_Calculate.
-FACTOR_FORMULAS = {
-    "alpha_01": r"\operatorname{rank}(\operatorname{TsMax}_{5}(\operatorname{SignedPower}(x,2)))-0.5",
-    "alpha_02": r"-\operatorname{Corr}_{6}(\operatorname{rank}(\Delta_2\log(\operatorname{Vol})),\operatorname{rank}((C-O)/O))",
-    "alpha_03": r"-\operatorname{Corr}_{10}(\operatorname{rank}(O),\operatorname{rank}(\operatorname{Vol}))",
-    "alpha_04": r"-\operatorname{TsRank}_{9}(\operatorname{rank}(L))",
-    "alpha_05": r"\operatorname{rank}(O)\times(-|\operatorname{rank}(C)|)",
-    "alpha_06": r"-\operatorname{Corr}_{10}(O,\operatorname{Vol})",
-    "alpha_07": r"\begin{cases}-\operatorname{TsRank}_{60}(|\Delta_7 C|)\operatorname{sign}(\Delta_7 C),&\operatorname{Vol}>\operatorname{Adv}_{20}\\-1,&\text{otherwise}\end{cases}",
-    "alpha_08": r"-\operatorname{rank}(\operatorname{Sum}_5(O)\operatorname{Sum}_5(R)-\operatorname{Delay}_{10}(\operatorname{Sum}_5(O)\operatorname{Sum}_5(R)))",
-    "alpha_09": r"\begin{cases}\Delta C,&\operatorname{TsMin}_5(\Delta C)>0\\\Delta C,&\operatorname{TsMax}_5(\Delta C)<0\\-\Delta C,&\text{otherwise}\end{cases}",
-    "alpha_11": r"(\operatorname{rank}(\operatorname{TsMax}_3(VWAP-C))+\operatorname{rank}(\operatorname{TsMin}_3(VWAP-C)))\operatorname{rank}(\Delta_3\operatorname{Vol})",
-    "alpha_12": r"\operatorname{sign}(\Delta_1\operatorname{Vol})(-\Delta_1 C)",
-    "alpha_13": r"-\operatorname{rank}(\operatorname{Cov}_5(\operatorname{rank}(C),\operatorname{rank}(\operatorname{Vol})))",
-    "alpha_14": r"-\operatorname{rank}(\Delta_3 R)\times\operatorname{Corr}_{10}(O,\operatorname{Vol})",
-    "alpha_15": r"-\operatorname{Sum}_3(\operatorname{rank}(\operatorname{Corr}_3(\operatorname{rank}(H),\operatorname{rank}(\operatorname{Vol}))))",
-    "alpha_16": r"-\operatorname{rank}(\operatorname{Cov}_5(\operatorname{rank}(H),\operatorname{rank}(\operatorname{Vol})))",
-    "alpha_17": r"\operatorname{TsRank}_{10}(C)\operatorname{rank}(\Delta_2 C)\operatorname{rank}(\operatorname{TsRank}_5(\operatorname{Adv}_{20}))",
-    "alpha_18": r"-\operatorname{rank}(\operatorname{Std}_5(|C-O|)+(C-O)+\operatorname{Corr}_{10}(C,O))",
-    "alpha_23": r"\begin{cases}-\Delta_2 H,&\operatorname{Mean}_{20}(H)<H\\-1,&\text{otherwise}\end{cases}",
-    "alpha_25": r"\operatorname{rank}((-R)\operatorname{Adv}_{20}\operatorname{VWAP}(H-C))",
-    "alpha_26": r"-\operatorname{TsMax}_{3}(\operatorname{Corr}_{5}(\operatorname{TsRank}_5(\operatorname{Vol}),\operatorname{TsRank}_5(H)))",
-    "alpha_27": r"\operatorname{rank}(\operatorname{Mean}_{6}(\operatorname{Corr}_{2}(\operatorname{rank}(\operatorname{Vol}),\operatorname{rank}(\operatorname{VWAP}))))",
-    "alpha_28": r"\operatorname{rank}(\operatorname{Corr}_{5}(\operatorname{Adv}_{20},L)+(H+L)/2-C)",
-    "alpha_30": r"(\operatorname{sign}(\Delta_1 C)+\operatorname{sign}(\Delta_1 C_{-1})+\operatorname{sign}(\Delta_1 C_{-2}))\frac{\operatorname{Sum}_5(\operatorname{Vol})}{\operatorname{Sum}_{20}(\operatorname{Vol})}",
-    "alpha_32": r"\operatorname{Scale}(\operatorname{Mean}_7(C)-C)+20\operatorname{Scale}(\operatorname{Corr}_{252}(VWAP,\operatorname{Delay}_5(C)))",
-    "alpha_33": r"\operatorname{rank}(-[1-O/C])",
-    "alpha_34": r"\operatorname{rank}(1-\operatorname{rank}(\operatorname{Std}_2(R)/\operatorname{Std}_5(R))+1-\operatorname{rank}(\Delta_1 C))",
-    "alpha_35": r"\operatorname{TsRank}_{32}(\operatorname{Vol})[1-\operatorname{TsRank}_{16}(C+H-L)][1-\operatorname{TsRank}_{32}(R)]",
-    "alpha_37": r"\operatorname{rank}(\operatorname{Corr}_{200}(\operatorname{Delay}_1(O-C),C))+\operatorname{rank}(O-C)",
-    "alpha_45": r"-\operatorname{rank}(\operatorname{MidTermMomentum})\times\operatorname{Corr}(\operatorname{Price},\operatorname{Volume})\times\operatorname{TrendRank}",
-    "alpha_49": r"\begin{cases}-(\operatorname{Delay}_{20}(C)-\operatorname{Delay}_{10}(C)),&\operatorname{Delay}_{10}(C)-C< -0.1\\-1,&\text{otherwise}\end{cases}",
-    "alpha_50": r"-\operatorname{TsMax}_{5}(\operatorname{rank}(\operatorname{Corr}_5(\operatorname{rank}(\operatorname{Vol}),\operatorname{rank}(VWAP))))",
-    "alpha_57": r"-\frac{C-VWAP}{\operatorname{DecayLinear}_{2}(\operatorname{rank}(\operatorname{TsArgMax}_{21}(C)))}",
-    "alpha_60": r"2\operatorname{Scale}(\operatorname{rank}(\operatorname{Vol}\times((C-L)-(H-L))/(H-L)))-\operatorname{Scale}(\operatorname{rank}(\operatorname{TsRank}_{10}(C)))",
-    "alpha_61": r"2\operatorname{Scale}(\operatorname{rank}(\operatorname{Vol}\times((C-L)-(H-L))/(H-L)))-\operatorname{Scale}(\operatorname{rank}(\operatorname{TsRank}_{10}(C)))",
-}
 app = FastAPI(title="Quant Factor Research System", version="0.2.0")
 app.mount("/static", StaticFiles(directory=FRONTEND_DIR), name="static")
 
@@ -282,14 +243,26 @@ def factors():
         order by factor_name, factor_version
         """
     )
-    records = _records(df)
-    for record in records:
-        formula = FACTOR_FORMULAS.get(record.get("factor_name"))
-        record["formula_latex"] = formula or r"\operatorname{DefinedInSource}\left(" + str(record.get("factor_name")) + r"\right)"
-        record["formula_source"] = "Factor_Calculate"
-        record["formula_verified"] = formula is not None
-    return {"factors": records}
+    return {"factors": _records(df)}
 
+
+
+@app.get("/api/market-factors")
+def market_factors():
+    session = _session()
+    df = session.run(
+        f"""
+        f = loadTable('{DEFAULT_DB_PATH}', `market_factor_daily)
+        select count(*) as rows,
+               min(trade_date) as start_date,
+               max(trade_date) as end_date,
+               max(created_at) as last_created_at
+        from f
+        group by factor_name, factor_version, data_version
+        order by factor_name, factor_version, data_version
+        """
+    )
+    return {"factors": _records(df)}
 
 @app.get("/api/market/coverage")
 def market_coverage(
